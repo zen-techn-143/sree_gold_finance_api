@@ -1,7 +1,7 @@
 <?php
 $name = "localhost";
-$username = "zen_root_sree_gold_finanace";
-$password = "rmFsBdyAnh6mfrZa";
+$username = "root";
+$password = "";
 $database = "sree_gold_finanace";
 
 $conn = new mysqli($name, $username, $password, $database);
@@ -359,7 +359,7 @@ function getBalance($conn)
 /**
  * Add a transaction (Expense = patru, Income = varavu)
  */
-function addTransaction($conn, $description, $amount, $type,$date)
+function addTransaction($conn, $description, $amount, $type,$date,$receipt_no)
 {
     if (!$description || $amount <= 0 || !in_array($type, ['varavu', 'patru', 'balance'])) {
         return ["head" => ["code" => 400, "msg" => "Invalid input!"]];
@@ -388,9 +388,9 @@ function addTransaction($conn, $description, $amount, $type,$date)
     }
 
     // Insert transaction record using prepared statement
-    $insert_transaction_query = "INSERT INTO transactions (description, amount, type,transaction_date) VALUES (?, ?, ?,?)";
+    $insert_transaction_query = "INSERT INTO transactions (description, amount, type,transaction_date,receipt_no) VALUES (?, ?, ?,?,?)";
     $stmt = $conn->prepare($insert_transaction_query);
-    $stmt->bind_param("sdss", $description, $amount, $type,$date); // s = string, d = double, s = string
+    $stmt->bind_param("sdsss", $description, $amount, $type,$date,$receipt_no); // s = string, d = double, s = string
 
     if ($stmt->execute()) {
         $stmt->close();

@@ -29,49 +29,49 @@ switch ($action) {
 
     case "create":
         if (
-    empty($input['expense_name']) ||
-    empty($input['expense_type']) ||
-    !isset($input['amount']) ||  // amount can be 0
-    empty($input['date'])
-) {
-    $response = ["head" => ["code" => 400, "msg" => "Missing or invalid required fields"]];
-    break;
-}
+            empty($input['expense_name']) ||
+            empty($input['expense_type']) ||
+            !isset($input['amount']) ||  // amount can be 0
+            empty($input['date'])
+        ) {
+            $response = ["head" => ["code" => 400, "msg" => "Missing or invalid required fields"]];
+            break;
+        }
 
         $expense_type = $input["expense_type"];
-        $type ="";
-        if($expense_type === "debit"){
-            $type ="patru";
-        }else{
-           $type ="varavu"; 
+        $type = "";
+        if ($expense_type === "debit") {
+            $type = "patru";
+        } else {
+            $type = "varavu";
         }
-        
+
         $current_balance = getBalance($conn);
 
         // Check if balance is sufficient for expense
         if ($type === 'patru' && $current_balance < $input['amount']) {
             $response = ["head" => ["code" => 400, "msg" => "Insufficient balance!\nYour Balance is $current_balance"]];
-            break; 
-        }else{
+            break;
+        } else {
 
-        $stmt = $conn->prepare("INSERT INTO expenses (expense_name,expense_type, amount, date) VALUES (?, ?, ?,?)");
-        $stmt->bind_param("ssds", $input['expense_name'],$input['expense_type'], $input['amount'], $input['date']);
-        $stmt->execute();
+            $stmt = $conn->prepare("INSERT INTO expenses (expense_name,expense_type, amount, date) VALUES (?, ?, ?,?)");
+            $stmt->bind_param("ssds", $input['expense_name'], $input['expense_type'], $input['amount'], $input['date']);
+            $stmt->execute();
+            $receipt_no = $input['receipt_no'] ?? null;
+            addTransaction($conn, $input['expense_name'], $input['amount'], $type, $input['date'], $receipt_no);
 
-        addTransaction($conn, $input['expense_name'], $input['amount'], $type,$input['date']);
-
-        $response = ["head" => ["code" => 200, "msg" => "Transaction added successfully!"]];
-        break;
-       }
+            $response = ["head" => ["code" => 200, "msg" => "Transaction added successfully!"]];
+            break;
+        }
 
     case "update":
-        if (!isset($input['expense_id'], $input['expense_name'],$input['expense_type'], $input['amount'], $input['date'])) {
+        if (!isset($input['expense_id'], $input['expense_name'], $input['expense_type'], $input['amount'], $input['date'])) {
             $response = ["head" => ["code" => 400, "msg" => "Missing required fields"]];
             break;
         }
 
         $stmt = $conn->prepare("UPDATE expenses SET expense_name = ?,expense_type = ?, amount = ?, date = ? WHERE expense_id = ?");
-        $stmt->bind_param("ssdsi", $input['expense_name'],$input['expense_type'], $input['amount'], $input['date'], $input['expense_id']);
+        $stmt->bind_param("ssdsi", $input['expense_name'], $input['expense_type'], $input['amount'], $input['date'], $input['expense_id']);
         $stmt->execute();
 
         $response = ["head" => ["code" => 200, "msg" => "Transaction updated successfully!"]];

@@ -408,7 +408,8 @@ $interest_payment_period_db = $totalDays360;
             $updateStmt->execute();
             $updateStmt->close();
 
-            $result = addTransaction($conn, $name, $original_amount, $type1, $pawnjewelry_date);
+           // Update this line in your main logic:
+$result = addTransaction($conn, $name, $original_amount, $type1, $pawnjewelry_date, $receipt_no);
             
             if ($result) {
                 $output["head"]["code"] = 200;
