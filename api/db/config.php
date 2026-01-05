@@ -422,7 +422,7 @@ function addTransaction($conn, $description, $amount, $type, $date, $receipt_no)
 //     $result = $conn->query($query);
 //     return $result->fetch_all(MYSQLI_ASSOC);
 // }
-function listTransactions($conn, $start_date = null, $end_date = null, $limit = 500, $offset = 0)
+function listTransactions($conn, $start_date = null, $end_date = null, $limit = null, $offset = null)
 {
     $query = "SELECT * FROM transactions";
     $conditions = [];
@@ -435,11 +435,17 @@ function listTransactions($conn, $start_date = null, $end_date = null, $limit = 
         $query .= " WHERE " . implode(" AND ", $conditions);
     }
 
+    $query .= " ORDER BY transaction_date ASC, transaction_id ASC";
 
-    $limit = (int) $limit;
-    $offset = (int) $offset;
-
-    $query .= " ORDER BY transaction_date ASC, transaction_id ASC LIMIT $limit OFFSET $offset";
+    // ONLY add LIMIT if it is explicitly provided
+    if ($limit !== null) {
+        $limit = (int) $limit;
+        $query .= " LIMIT $limit";
+        if ($offset !== null) {
+            $offset = (int) $offset;
+            $query .= " OFFSET $offset";
+        }
+    }
 
     $result = $conn->query($query);
 
