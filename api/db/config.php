@@ -359,7 +359,7 @@ function getBalance($conn)
 /**
  * Add a transaction (Expense = patru, Income = varavu)
  */
-function addTransaction($conn, $description, $amount, $type,$date,$receipt_no)
+function addTransaction($conn, $description, $amount, $type, $date, $receipt_no)
 {
     if (!$description || $amount <= 0 || !in_array($type, ['varavu', 'patru', 'balance'])) {
         return ["head" => ["code" => 400, "msg" => "Invalid input!"]];
@@ -367,7 +367,7 @@ function addTransaction($conn, $description, $amount, $type,$date,$receipt_no)
 
     $current_balance = getBalance($conn);
 
-    if ($type !== 'balance') { 
+    if ($type !== 'balance') {
         // Check if balance is sufficient for expense
         if ($type === 'patru' && $current_balance < $amount) {
             return ["head" => ["code" => 400, "msg" => "Insufficient balance!"]];
@@ -390,7 +390,7 @@ function addTransaction($conn, $description, $amount, $type,$date,$receipt_no)
     // Insert transaction record using prepared statement
     $insert_transaction_query = "INSERT INTO transactions (description, amount, type,transaction_date,receipt_no) VALUES (?, ?, ?,?,?)";
     $stmt = $conn->prepare($insert_transaction_query);
-    $stmt->bind_param("sdsss", $description, $amount, $type,$date,$receipt_no); // s = string, d = double, s = string
+    $stmt->bind_param("sdsss", $description, $amount, $type, $date, $receipt_no); // s = string, d = double, s = string
 
     if ($stmt->execute()) {
         $stmt->close();
@@ -422,15 +422,21 @@ function addTransaction($conn, $description, $amount, $type,$date,$receipt_no)
 //     $result = $conn->query($query);
 //     return $result->fetch_all(MYSQLI_ASSOC);
 // }
-function listTransactions($conn, $start_date = null, $end_date = null)
+function listTransactions($conn, $start_date = null, $end_date = null, $limit = 10, $offset = 0)
 {
     $query = "SELECT * FROM transactions";
+    $conditions = [];
 
     if ($start_date && $end_date) {
-        $query .= " WHERE DATE(transaction_date) BETWEEN '$start_date' AND '$end_date'";
+        $conditions[] = "DATE(transaction_date) BETWEEN '$start_date' AND '$end_date'";
     }
 
-    $query .= " ORDER BY transaction_date DESC";
+    if (!empty($conditions)) {
+        $query .= " WHERE " . implode(" AND ", $conditions);
+    }
+
+    // Sort by newest first and apply pagination
+    $query .= " ORDER BY transaction_date DESC, transaction_id DESC LIMIT $limit OFFSET $offset";
 
     $result = $conn->query($query);
     return $result->fetch_all(MYSQLI_ASSOC);

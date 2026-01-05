@@ -24,17 +24,30 @@ switch ($action) {
         $amount = floatval($input['amount'] ?? 0);
         $type = $input['type'] ?? ''; // 'varavu' (income) or 'patru' (expense)
 
-        $response = addTransaction($conn, $description, $amount, $type, $timestamp);
+        $response = addTransaction($conn, $description, $amount, $type, $timestamp, $receipt_no);
         echo json_encode($response);
         break;
 
-    case "list_transactions":
+   case "list_transactions":
         $start_date = $input['start_date'] ?? null;
         $end_date = $input['end_date'] ?? null;
-        // Add limit to prevent large fetches
+        
+        // --- Pagination Logic ---
+        $limit = 10; // Number of rows per page
+        $page = isset($input['page']) ? (int)$input['page'] : 1;
+        if ($page < 1) $page = 1;
+        $offset = ($page - 1) * $limit;
+
+        // Fix: Removed $receipt_no and $timestamp which were causing warnings
+        $transactions = listTransactions($conn, $start_date, $end_date, $limit, $offset);
+        
         echo json_encode([
             "head" => ["code" => 200],
-            "body" => ["transactions" => listTransactions($conn, $start_date, $end_date, 1000)] // Limit 1000 rows
+            "body" => [
+                "transactions" => $transactions,
+                "current_page" => $page,
+                "limit" => $limit
+            ]
         ]);
         break;
 
