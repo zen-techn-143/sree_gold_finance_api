@@ -34,7 +34,7 @@ switch ($action) {
 
 
         $page = isset($input['page']) ? (int) $input['page'] : 1;
-        $limit = 100;
+        $limit = 500;
         $offset = ($page - 1) * $limit;
 
 

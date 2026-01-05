@@ -422,7 +422,7 @@ function addTransaction($conn, $description, $amount, $type, $date, $receipt_no)
 //     $result = $conn->query($query);
 //     return $result->fetch_all(MYSQLI_ASSOC);
 // }
-function listTransactions($conn, $start_date = null, $end_date = null, $limit = 100, $offset = 0)
+function listTransactions($conn, $start_date = null, $end_date = null, $limit = 500, $offset = 0)
 {
     $query = "SELECT * FROM transactions";
     $conditions = [];
