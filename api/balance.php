@@ -28,29 +28,36 @@ switch ($action) {
         echo json_encode($response);
         break;
 
-   case "list_transactions":
+    case "list_transactions":
         $start_date = $input['start_date'] ?? null;
         $end_date = $input['end_date'] ?? null;
-        
-        // --- Pagination Logic ---
-        $limit = 10; // Number of rows per page
-        $page = isset($input['page']) ? (int)$input['page'] : 1;
-        if ($page < 1) $page = 1;
+
+
+        $page = isset($input['page']) ? (int) $input['page'] : 1;
+        $limit = 100;
         $offset = ($page - 1) * $limit;
 
-        // Fix: Removed $receipt_no and $timestamp which were causing warnings
+
+        $initial_balance = 0;
+        if ($start_date) {
+            $stmt = $conn->prepare("SELECT 
+            SUM(CASE WHEN type = 'varavu' THEN amount ELSE -amount END) as starting_sum 
+            FROM transactions WHERE transaction_date < ?");
+            $stmt->bind_param("s", $start_date);
+            $stmt->execute();
+            $result = $stmt->get_result()->fetch_assoc();
+            $initial_balance = $result['starting_sum'] ?? 0;
+        }
         $transactions = listTransactions($conn, $start_date, $end_date, $limit, $offset);
-        
+
         echo json_encode([
             "head" => ["code" => 200],
             "body" => [
                 "transactions" => $transactions,
-                "current_page" => $page,
-                "limit" => $limit
+                "initial_balance" => (float) $initial_balance // Ensure it is a number
             ]
         ]);
         break;
-
     default:
         echo json_encode(["head" => ["code" => 400, "msg" => "Invalid action!"]]);
 }
