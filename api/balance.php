@@ -29,35 +29,41 @@ switch ($action) {
         break;
 
     case "list_transactions":
-        $start_date = $input['start_date'] ?? null;
-        $end_date = $input['end_date'] ?? null;
+    // Receive month and year from frontend
+    $month = $input['month'] ?? date('m');
+    $year = $input['year'] ?? date('Y');
+
+    // Calculate the first and last day of that specific month
+    $start_date = "$year-$month-01 00:00:00";
+    $end_date = date("Y-m-t 23:59:59", strtotime($start_date));
+
+    $page = isset($input['page']) ? (int) $input['page'] : 1;
+    $limit = 500;
+    $offset = ($page - 1) * $limit;
+
+    $initial_balance = 0;
+    // Calculate sum of all transactions BEFORE the 1st of the selected month
+    $stmt = $conn->prepare("SELECT 
+        SUM(CASE WHEN type = 'varavu' THEN amount ELSE -amount END) as starting_sum 
+        FROM transactions WHERE transaction_date < ?");
+    $stmt->bind_param("s", $start_date);
+    $stmt->execute();
+    $result = $stmt->get_result()->fetch_assoc();
+    $initial_balance = $result['starting_sum'] ?? 0;
+
+    $transactions = listTransactions($conn, $start_date, $end_date, $limit, $offset);
+
+    echo json_encode([
+        "head" => ["code" => 200],
+        "body" => [
+            "transactions" => $transactions,
+            "initial_balance" => (float) $initial_balance,
+            "selected_range" => ["start" => $start_date, "end" => $end_date] // Helpful for debugging
+        ]
+    ]);
+    break;
 
 
-        $page = isset($input['page']) ? (int) $input['page'] : 1;
-        $limit = 500;
-        $offset = ($page - 1) * $limit;
-
-
-        $initial_balance = 0;
-        if ($start_date) {
-            $stmt = $conn->prepare("SELECT 
-            SUM(CASE WHEN type = 'varavu' THEN amount ELSE -amount END) as starting_sum 
-            FROM transactions WHERE transaction_date < ?");
-            $stmt->bind_param("s", $start_date);
-            $stmt->execute();
-            $result = $stmt->get_result()->fetch_assoc();
-            $initial_balance = $result['starting_sum'] ?? 0;
-        }
-        $transactions = listTransactions($conn, $start_date, $end_date, $limit, $offset);
-
-        echo json_encode([
-            "head" => ["code" => 200],
-            "body" => [
-                "transactions" => $transactions,
-                "initial_balance" => (float) $initial_balance // Ensure it is a number
-            ]
-        ]);
-        break;
     default:
         echo json_encode(["head" => ["code" => 400, "msg" => "Invalid action!"]]);
 }
