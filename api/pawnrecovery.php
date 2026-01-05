@@ -83,14 +83,13 @@ if (isset($obj->search_text)) {
 }
 
 // <<<<<<<<<<===================== Create or Update Recovery Record =====================>>>>>>>>>>
-
 elseif (isset($obj->receipt_no)) {
     // Sanitize inputs
     $edit_id = $conn->real_escape_string($obj->edit_pawnrecovery_id ?? '');
     $receipt_no = $conn->real_escape_string($obj->receipt_no);
     $pawnjewelry_date = $conn->real_escape_string($obj->pawnjewelry_date);
     $name = $conn->real_escape_string($obj->name);
-     $raw_address = $obj->customer_details;
+    $raw_address = $obj->customer_details;
     $cleaned_address = str_replace(['/', '\\n', '\n', "\n", "\r"], ' ', $raw_address);
     $cleaned_address = preg_replace('/\s+/', ' ', $cleaned_address);
     $cleaned_address = trim($cleaned_address);
@@ -118,34 +117,34 @@ elseif (isset($obj->receipt_no)) {
     $type = "varavu";
 
     if ($edit_id === "") {
-        
-         $checkInterestStmt = $conn->prepare("SELECT `interest_payment_amount` FROM `pawnjewelry` WHERE `receipt_no` = ? AND `delete_at` = 0");
-    $checkInterestStmt->bind_param("s", $receipt_no);
-    $checkInterestStmt->execute();
-    $resultInterest = $checkInterestStmt->get_result();
-    $checkInterestStmt->close();
 
-    if ($resultInterest->num_rows === 0) {
-        $output["head"]["code"] = 404;
-        $output["head"]["msg"] = "No pawn jewelry record found for this receipt number.";
-        echo json_encode($output, JSON_NUMERIC_CHECK);
-        exit();
-    }
+        $checkInterestStmt = $conn->prepare("SELECT `interest_payment_amount` FROM `pawnjewelry` WHERE `receipt_no` = ? AND `delete_at` = 0");
+        $checkInterestStmt->bind_param("s", $receipt_no);
+        $checkInterestStmt->execute();
+        $resultInterest = $checkInterestStmt->get_result();
+        $checkInterestStmt->close();
 
-    $row = $resultInterest->fetch_assoc();
-    // if (floatval($row["interest_payment_amount"]) > 0) {
-    //     $output["head"]["code"] = 403;
-    //     $output["head"]["msg"] = "Please pay full interest before closing the loan.";
-    //     echo json_encode($output, JSON_NUMERIC_CHECK);
-    //     exit();
-    // }
+        if ($resultInterest->num_rows === 0) {
+            $output["head"]["code"] = 404;
+            $output["head"]["msg"] = "No pawn jewelry record found for this receipt number.";
+            echo json_encode($output, JSON_NUMERIC_CHECK);
+            exit();
+        }
+
+        $row = $resultInterest->fetch_assoc();
+        // if (floatval($row["interest_payment_amount"]) > 0) {
+        //     $output["head"]["code"] = 403;
+        //     $output["head"]["msg"] = "Please pay full interest before closing the loan.";
+        //     echo json_encode($output, JSON_NUMERIC_CHECK);
+        //     exit();
+        // }
         // Check if recovery record exists
         $checkStmt = $conn->prepare("SELECT `id` FROM `pawnjewelry_recovery` WHERE `receipt_no` = ? AND delete_at = 0");
         $checkStmt->bind_param("s", $receipt_no);
         $checkStmt->execute();
         $recoveryCheck = $checkStmt->get_result();
         $checkStmt->close();
-        $products_json = json_encode($jewel_product,JSON_UNESCAPED_UNICODE);
+        $products_json = json_encode($jewel_product, JSON_UNESCAPED_UNICODE);
         if ($recoveryCheck->num_rows == 0) {
             // Insert recovery record using prepared statement
             $insertStmt = $conn->prepare("INSERT INTO `pawnjewelry_recovery` (
@@ -161,25 +160,42 @@ elseif (isset($obj->receipt_no)) {
                 ?, ?, ?, ?, ?, ?, ?, ?,
                 ?, 0, ?, ?
             )");
-                
-           $insertStmt->bind_param(
-        "ssssssdssdssssssdisdssdd",
-        $pawnjewelry_date, $receipt_no, $name, $customer_details, $place, $mobile_number,
-        $original_amount, $interest_rate, $products_json, $interest_income, $refund_amount,
-        $pawnjewelry_recovery_date, $interest_payment_periods,
-      $bank_pledge_date, $bank_assessor_name, $bank_name,
-        $bank_pawn_value, $bank_interest, $bank_duration,
-        $bank_additional_charges, $location,
-    
-        $timestamp, $other_amount, $interest_paid
-    );
+
+            $insertStmt->bind_param(
+                "ssssssdssdssssssdisdssdd",
+                $pawnjewelry_date,
+                $receipt_no,
+                $name,
+                $customer_details,
+                $place,
+                $mobile_number,
+                $original_amount,
+                $interest_rate,
+                $products_json,
+                $interest_income,
+                $refund_amount,
+                $pawnjewelry_recovery_date,
+                $interest_payment_periods,
+                $bank_pledge_date,
+                $bank_assessor_name,
+                $bank_name,
+                $bank_pawn_value,
+                $bank_interest,
+                $bank_duration,
+                $bank_additional_charges,
+                $location,
+
+                $timestamp,
+                $other_amount,
+                $interest_paid
+            );
 
 
             if ($insertStmt->execute()) {
                 $id = $conn->insert_id;
                 $uniqueRecoveryID = uniqueID('recovery', $id);
-               
-              $updateStmt = $conn->prepare("UPDATE `pawnjewelry_recovery` SET `pawnjewelry_recovery_id` = ? WHERE `id` = ?");
+
+                $updateStmt = $conn->prepare("UPDATE `pawnjewelry_recovery` SET `pawnjewelry_recovery_id` = ? WHERE `id` = ?");
                 $updateStmt->bind_param("si", $uniqueRecoveryID, $id);
                 $updateStmt->execute();
                 $updateStmt->close();
@@ -196,11 +212,11 @@ elseif (isset($obj->receipt_no)) {
                 }
                 $statusStmt->close();
 
-                addTransaction($conn, $name, $refund_amount, $type, $pawnjewelry_recovery_date);
-                
-                if($other_amount > 0){
-                    
-                    addTransaction($conn, $name, $other_amount, $type, $pawnjewelry_recovery_date);
+                addTransaction($conn, $name, $refund_amount, $type, $pawnjewelry_recovery_date, $receipt_no);
+
+                if ($other_amount > 0) {
+
+                    addTransaction($conn, $name, $other_amount, $type, $pawnjewelry_recovery_date, $receipt_no);
                 }
 
                 $output["head"]["code"] = 200;
@@ -221,7 +237,7 @@ elseif (isset($obj->receipt_no)) {
         }
     } else {
         // Update recovery record using prepared statement
-               $updateStmt = $conn->prepare("UPDATE `pawnjewelry_recovery` SET 
+        $updateStmt = $conn->prepare("UPDATE `pawnjewelry_recovery` SET 
             `pawnjewelry_date` = ?, 
             `receipt_no` = ?, 
             `name` = ?,
@@ -247,8 +263,8 @@ elseif (isset($obj->receipt_no)) {
             `location` = ?
         
         WHERE `pawnjewelry_recovery_id` = ?");
-       
-       $updateStmt->bind_param(
+
+        $updateStmt->bind_param(
             "ssssssdssdddsssssdissds",
             $pawnjewelry_date,
             $receipt_no,
@@ -264,7 +280,7 @@ elseif (isset($obj->receipt_no)) {
             $other_amount,
             $pawnjewelry_recovery_date,
             $interest_payment_periods,
-        
+
             $bank_pledge_date,
             $bank_assessor_name,
             $bank_name,
@@ -273,7 +289,7 @@ elseif (isset($obj->receipt_no)) {
             $bank_duration,
             $bank_additional_charges,
             $location,
-        
+
             $edit_id
         );
 

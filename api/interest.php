@@ -45,31 +45,31 @@ if (isset($obj->search_text)) {
 
             // Parse interest rate (e.g., "2%" -> 0.02)
             // Parse interest rate (e.g., "2%" -> 0.02)
-$interest_rate_value = floatval(str_replace('%', '', $interest_rate)) / 100;
+            $interest_rate_value = floatval(str_replace('%', '', $interest_rate)) / 100;
 
-// Calculate monthly and daily interest
-$monthly_interest = $original_amount * $interest_rate_value;
-$daily_interest = $monthly_interest / 30;
+            // Calculate monthly and daily interest
+            $monthly_interest = $original_amount * $interest_rate_value;
+            $daily_interest = $monthly_interest / 30;
 
-// Calculate days paid
-$total_days_paid = ($daily_interest > 0) ? round($interest_income / $daily_interest) : 0;
+            // Calculate days paid
+            $total_days_paid = ($daily_interest > 0) ? round($interest_income / $daily_interest) : 0;
 
-// Split into months and days
-$months = floor($total_days_paid / 30);
-$days = $total_days_paid % 30;
+            // Split into months and days
+            $months = floor($total_days_paid / 30);
+            $days = $total_days_paid % 30;
 
-// Format interest_payment_periods
-$period_string = '';
-if ($months > 0) {
-    $period_string .= "$months month" . ($months > 1 ? 's' : '');
-}
-if ($days > 0) {
-    $period_string .= ($months > 0 ? ' ' : '') . "$days day" . ($days > 1 ? 's' : '');
-}
-$period_string = $period_string ?: '0 days';
+            // Format interest_payment_periods
+            $period_string = '';
+            if ($months > 0) {
+                $period_string .= "$months month" . ($months > 1 ? 's' : '');
+            }
+            if ($days > 0) {
+                $period_string .= ($months > 0 ? ' ' : '') . "$days day" . ($days > 1 ? 's' : '');
+            }
+            $period_string = $period_string ?: '0 days';
 
-// Store interest_payment_periods for this record
-$row['interest_payment_periods'] = $period_string;
+            // Store interest_payment_periods for this record
+            $row['interest_payment_periods'] = $period_string;
 
 
             // Add to records array
@@ -96,25 +96,25 @@ elseif (isset($obj->receipt_no) && empty($obj->edit_interest_id)) {
     $receipt_no = $conn->real_escape_string($obj->receipt_no);
     $interest_receive_date = $conn->real_escape_string($obj->interest_receive_date);
     $name = $conn->real_escape_string($obj->name);
-     $raw_address = $obj->customer_details;
+    $raw_address = $obj->customer_details;
     $cleaned_address = str_replace(['/', '\\n', '\n', "\n", "\r"], ' ', $raw_address);
     $cleaned_address = preg_replace('/\s+/', ' ', $cleaned_address);
     $cleaned_address = trim($cleaned_address);
     $customer_details = $conn->real_escape_string($cleaned_address);
     $place = $conn->real_escape_string($obj->place);
     $mobile_number = $conn->real_escape_string($obj->mobile_number);
-   $original_amount = $conn->real_escape_string($obj->original_amount);
+    $original_amount = $conn->real_escape_string($obj->original_amount);
     $interest_rate = isset($obj->interest_rate) ? $conn->real_escape_string($obj->interest_rate) : '0';
     $jewel_product = isset($obj->jewel_product) ? $obj->jewel_product : [];
     $interest_income = isset($obj->interest_income) && is_numeric($obj->interest_income) ? floatval($obj->interest_income) : 0.0;
     $outstanding_period = $conn->real_escape_string($obj->outstanding_period);
     $outstanding_amount = isset($obj->outstanding_amount) && is_numeric($obj->outstanding_amount) ? floatval($obj->outstanding_amount) : 0.0;
-    $topup_amount = isset($obj->topup_amount) ? (int)$obj->topup_amount : 0;
-    $deduction_amount = isset($obj->deduction_amount) ? (int)$obj->deduction_amount : 0;
+    $topup_amount = isset($obj->topup_amount) ? (int) $obj->topup_amount : 0;
+    $deduction_amount = isset($obj->deduction_amount) ? (int) $obj->deduction_amount : 0;
     $type = "varavu";
     $timestamp = date('Y-m-d H:i:s');
-    
-//   if ($outstanding_amount <= $interest_income) {
+
+    //   if ($outstanding_amount <= $interest_income) {
 //     $output["head"]["code"] = 400;
 //     $output["head"]["msg"] = "நிலுவைத் தொகை வட்டி வருமானத்தை விடக் குறைவாக இருக்கக்கூடாது.";
 //     echo json_encode($output);
@@ -131,21 +131,21 @@ elseif (isset($obj->receipt_no) && empty($obj->edit_interest_id)) {
     if ($recoveryCheck->num_rows > 0) {
         $output["head"]["code"] = 400;
         $output["head"]["msg"] = "This receipt number is already recovered.";
-         echo json_encode($output);
-    exit; // Stop script immediately after sending error
+        echo json_encode($output);
+        exit; // Stop script immediately after sending error
     }
-    
+
 
     // Required field validation
-    if (empty($receipt_no) || empty($interest_receive_date) || empty($customer_details)  || empty($original_amount)) {
+    if (empty($receipt_no) || empty($interest_receive_date) || empty($customer_details) || empty($original_amount)) {
         $output["head"]["code"] = 400;
         $output["head"]["msg"] = "Please provide all required fields.";
-         echo json_encode($output);
-    exit; // Stop script immediately after sending error
-       
+        echo json_encode($output);
+        exit; // Stop script immediately after sending error
+
     }
 
- 
+
 
     // Fetch pawnjewelry record
     $stmt = $conn->prepare("SELECT original_amount, interest_rate, interest_payment_period, interest_payment_amount 
@@ -158,56 +158,69 @@ elseif (isset($obj->receipt_no) && empty($obj->edit_interest_id)) {
     if ($pawnResult->num_rows == 0) {
         $output["head"]["code"] = 400;
         $output["head"]["msg"] = "கொடுக்கப்பட்ட ரசீது எண்ணுக்கு அடகு நகைகள் எதுவும் கிடைக்கவில்லை.";
-       
+
     }
 
     $pawnData = $pawnResult->fetch_assoc();
     $pawn_original_amount = $pawnData['original_amount'];
-$interest_rate = $pawnData['interest_rate'];
-$current_interest_payment_period = $pawnData['interest_payment_period'];
-$current_interest_payment_amount = $pawnData['interest_payment_amount'];
+    $interest_rate = $pawnData['interest_rate'];
+    $current_interest_payment_period = $pawnData['interest_payment_period'];
+    $current_interest_payment_amount = $pawnData['interest_payment_amount'];
 
-$interest_rate_value = floatval(str_replace('%', '', $interest_rate)) / 100;
-$monthly_interest = $pawn_original_amount * $interest_rate_value;
+    $interest_rate_value = floatval(str_replace('%', '', $interest_rate)) / 100;
+    $monthly_interest = $pawn_original_amount * $interest_rate_value;
 
-// Assume 30 days per month for pawn finance logic
-$daily_interest = $monthly_interest / 30;
+    // Assume 30 days per month for pawn finance logic
+    $daily_interest = $monthly_interest / 30;
 
-$days_paid_total = $daily_interest > 0 ? floor($interest_income / $daily_interest) : 0;
-$months_paid = floor($days_paid_total / 30);
-$days_only = $days_paid_total % 30;
+    $days_paid_total = $daily_interest > 0 ? floor($interest_income / $daily_interest) : 0;
+    $months_paid = floor($days_paid_total / 30);
+    $days_only = $days_paid_total % 30;
 
-// Format for display/logging (optional)
-$paid_period_display = '';
-if ($months_paid > 0) {
-    $paid_period_display .= "{$months_paid} மாதம்" . ($months_paid > 1 ? 'கள்' : '');
-}
-if ($days_only > 0) {
-    $paid_period_display .= ($months_paid > 0 ? ' ' : '') . "{$days_only} நாள்" . ($days_only > 1 ? 'கள்' : '');
-}
-$paid_period_display = $paid_period_display ?: '0 நாள்';
+    // Format for display/logging (optional)
+    $paid_period_display = '';
+    if ($months_paid > 0) {
+        $paid_period_display .= "{$months_paid} மாதம்" . ($months_paid > 1 ? 'கள்' : '');
+    }
+    if ($days_only > 0) {
+        $paid_period_display .= ($months_paid > 0 ? ' ' : '') . "{$days_only} நாள்" . ($days_only > 1 ? 'கள்' : '');
+    }
+    $paid_period_display = $paid_period_display ?: '0 நாள்';
 
 
-// Update remaining period and outstanding
-$new_interest_payment_period = max(0, $current_interest_payment_period - $days_only);
-$new_interest_payment_amount = max(0, floatval($current_interest_payment_amount) - floatval($interest_income));
+    // Update remaining period and outstanding
+    $new_interest_payment_period = max(0, $current_interest_payment_period - $days_only);
+    $new_interest_payment_amount = max(0, floatval($current_interest_payment_amount) - floatval($interest_income));
 
-// Guard clause for overpayment
-if ($new_interest_payment_period <= 0 && $new_interest_payment_amount <= 0) {
-    $output["head"]["code"] = 400;
-    $output["head"]["msg"] = "Interest payment exceeds outstanding amount.";
-}
+    // Guard clause for overpayment
+    if ($new_interest_payment_period <= 0 && $new_interest_payment_amount <= 0) {
+        $output["head"]["code"] = 400;
+        $output["head"]["msg"] = "Interest payment exceeds outstanding amount.";
+    }
 
- $products_json = json_encode($jewel_product,JSON_UNESCAPED_UNICODE);
+    $products_json = json_encode($jewel_product, JSON_UNESCAPED_UNICODE);
     // Insert interest record
     $stmt = $conn->prepare("INSERT INTO `interest` (
         `interest_receive_date`, `receipt_no`, `name`,`customer_details`,`place`, `mobile_number`, 
         `original_amount`, `interest_rate`, `jewel_product`,`interest_income`, `outstanding_period`, `outstanding_amount`, `topup_amount`,`deduction_amount`, `create_at`, `delete_at`
     ) VALUES (?, ?, ?, ?,?, ?, ?,?,?, ?, ?, ?, ?,?, ?, 0)");
-    $stmt->bind_param("ssssssdsssssiss",
-        $interest_receive_date, $receipt_no, $name,$customer_details, $place,$mobile_number,
-        $original_amount, $interest_rate, $products_json,
-        $interest_income, $outstanding_period, $outstanding_amount, $topup_amount,$deduction_amount, $timestamp
+    $stmt->bind_param(
+        "ssssssdsssssiss",
+        $interest_receive_date,
+        $receipt_no,
+        $name,
+        $customer_details,
+        $place,
+        $mobile_number,
+        $original_amount,
+        $interest_rate,
+        $products_json,
+        $interest_income,
+        $outstanding_period,
+        $outstanding_amount,
+        $topup_amount,
+        $deduction_amount,
+        $timestamp
     );
 
     if ($stmt->execute()) {
@@ -225,23 +238,23 @@ if ($new_interest_payment_period <= 0 && $new_interest_payment_amount <= 0) {
             $stmt->bind_param("ds", $pawn_original_amount, $receipt_no);
             $stmt->execute();
             $stmt->close();
-            
-             // Insert into topup table
-    $topupInsert = $conn->prepare("INSERT INTO topup (receipt_no, topup_amount, topup_date, created_by) VALUES (?, ?, ?, ?)");
-    $created_by = "admin"; // or get from session if available
-    $topupInsert->bind_param("sdss", $receipt_no, $topup_amount, $interest_receive_date, $created_by);
-    $topupInsert->execute();
-    $topupInsert->close();
+
+            // Insert into topup table
+            $topupInsert = $conn->prepare("INSERT INTO topup (receipt_no, topup_amount, topup_date, created_by) VALUES (?, ?, ?, ?)");
+            $created_by = "admin"; // or get from session if available
+            $topupInsert->bind_param("sdss", $receipt_no, $topup_amount, $interest_receive_date, $created_by);
+            $topupInsert->execute();
+            $topupInsert->close();
         }
-        
-        if($deduction_amount > 0){
-             $pawn_original_amount -= $deduction_amount;
+
+        if ($deduction_amount > 0) {
+            $pawn_original_amount -= $deduction_amount;
             $stmt = $conn->prepare("UPDATE pawnjewelry SET original_amount = ? WHERE receipt_no = ? AND delete_at = 0");
             $stmt->bind_param("ds", $pawn_original_amount, $receipt_no);
             $stmt->execute();
             $stmt->close();
-            
-             // Insert into topup table
+
+            // Insert into topup table
             $deductionInsert = $conn->prepare("INSERT INTO deduction (receipt_no, deduction_amount, deduction_date, created_by) VALUES (?, ?, ?, ?)");
             $created_by = "admin"; // or get from session if available
             $deductionInsert->bind_param("sdss", $receipt_no, $deduction_amount, $interest_receive_date, $created_by);
@@ -262,12 +275,12 @@ if ($new_interest_payment_period <= 0 && $new_interest_payment_amount <= 0) {
 
 
         // Add transactions
-        addTransaction($conn, $name, $interest_income, $type, $interest_receive_date);
+        addTransaction($conn, $name, $interest_income, $type, $interest_receive_date, $receipt_no);
         if ($topup_amount > 0) {
-            addTransaction($conn, $name, $topup_amount, "patru", $interest_receive_date);
+            addTransaction($conn, $name, $topup_amount, "patru", $interest_receive_date, $receipt_no);
         }
         if ($deduction_amount > 0) {
-            addTransaction($conn, $name, $deduction_amount, "varavu", $interest_receive_date);
+            addTransaction($conn, $name, $deduction_amount, "varavu", $interest_receive_date, $receipt_no);
         }
 
         $output["head"]["code"] = 200;
@@ -278,7 +291,7 @@ if ($new_interest_payment_period <= 0 && $new_interest_payment_amount <= 0) {
         $output["head"]["msg"] = "Failed to add. Please try again.";
     }
 
-  
+
 }
 
 
@@ -300,8 +313,8 @@ elseif (isset($obj->edit_interest_id) && !empty($obj->edit_interest_id)) {
     $interest_rate = $conn->real_escape_string($obj->interest_rate);
     $jewel_product = isset($obj->jewel_product) ? $obj->jewel_product : [];
     $interest_income = $conn->real_escape_string($obj->interest_income);
-    $topup_amount = isset($obj->topup_amount) ? (int)$obj->topup_amount : 0; 
-    $deduction_amount = isset($obj->deduction_amount) ? (int)$obj->deduction_amount : 0;
+    $topup_amount = isset($obj->topup_amount) ? (int) $obj->topup_amount : 0;
+    $deduction_amount = isset($obj->deduction_amount) ? (int) $obj->deduction_amount : 0;
 
 
 
@@ -335,7 +348,7 @@ elseif (isset($obj->edit_interest_id) && !empty($obj->edit_interest_id)) {
     $prevData = $prevResult->fetch_assoc();
     $prev_interest_income = $prevData['interest_income'];
     $receipt_no = $prevData['receipt_no'];
- $products_json = json_encode($jewel_product,JSON_UNESCAPED_UNICODE);
+    $products_json = json_encode($jewel_product, JSON_UNESCAPED_UNICODE);
     // Update interest record
     $stmt = $conn->prepare("UPDATE `interest` SET 
         `receipt_no`=?, 
@@ -350,10 +363,20 @@ elseif (isset($obj->edit_interest_id) && !empty($obj->edit_interest_id)) {
         `interest_receive_date`=?, 
         `topup_amount`=?
         WHERE `interest_id`=?");
-    $stmt->bind_param("sssssdssssis",
-        $receipt_no,$name, $customer_details,$place, $mobile_number, $original_amount,$interest_rate,
-        $products_json, $interest_income, 
-        $interest_receive_date, $topup_amount, $edit_id
+    $stmt->bind_param(
+        "sssssdssssis",
+        $receipt_no,
+        $name,
+        $customer_details,
+        $place,
+        $mobile_number,
+        $original_amount,
+        $interest_rate,
+        $products_json,
+        $interest_income,
+        $interest_receive_date,
+        $topup_amount,
+        $edit_id
     );
 
     if ($stmt->execute()) {

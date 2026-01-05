@@ -28,7 +28,7 @@ if ($action === "open_balance") {
     $type = "balance";
 
     // Call the function to insert the transaction
-    $result = addTransaction($conn, $description, $amount, $type);
+    $result = addTransaction($conn, $description, $amount, $type, $timestamp, $obj->receipt_no);
 
     if ($result) {
         echo json_encode(["head" => ["code" => 200, "message" => "Opening balance recorded successfully"]]);
@@ -41,7 +41,7 @@ if ($action === "open_balance") {
     $type = "balance";
 
     // Call the function to insert the transaction
-    $result = addTransaction($conn, $description, $amount, $type);
+    $result = addTransaction($conn, $description, $amount, $type, $timestamp, $obj->receipt_no);
 
     if ($result) {
         echo json_encode(["head" => ["code" => 200, "message" => "Opening balance recorded successfully"]]);
