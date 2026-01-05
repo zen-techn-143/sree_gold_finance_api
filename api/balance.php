@@ -13,7 +13,8 @@ $input = json_decode(file_get_contents("php://input"), true);
 $action = $input['action'] ?? '';
 date_default_timezone_set('Asia/Calcutta');
 $timestamp = date('Y-m-d H:i:s');
-
+ini_set('memory_limit', '512M'); // Increase memory for large data sets
+set_time_limit(120);             // Allow the script to run for 2 minutes
 switch ($action) {
     case "get_balance":
         echo json_encode(["head" => ["code" => 200], "body" => ["balance" => getBalance($conn)]]);
@@ -31,7 +32,7 @@ switch ($action) {
         $month = $input['month'] ?? date('m');
         $year = $input['year'] ?? date('Y');
         $page = isset($input['page']) ? (int) $input['page'] : 1;
-        $limit = 10;
+        $limit = 5;
         $offset = ($page - 1) * $limit;
 
         $start_of_month = "$year-$month-01 00:00:00";
